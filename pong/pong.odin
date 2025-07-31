@@ -133,39 +133,44 @@ get_ball_position :: proc(game_state: Game_State) -> rl.Vector2 {
         return rl.Vector2 { x, y },
 }
 
-update_player :: proc(id: Entity_Type, entity: []Entity, game_state: Game_State) {
-    e := &entity[id]
+update_player :: proc(entity: []Entity, game_state: Game_State) {
+    id: Entity_Type = .Player
+    player := &entity[id]
+
     if rl.IsKeyDown(.W) || rl.IsKeyDown(.UP) {
-        e.velocity.y = -1
+        player.velocity.y = -1
     } else if rl.IsKeyDown(.S) || rl.IsKeyDown(.DOWN) {
-        e.velocity.y = 1
+        player.velocity.y = 1
     } else {
-        e.velocity.y = 0
+        player.velocity.y = 0
     }
 
-    e.position.y += e.velocity.y * e.speed
+    player.position.y += player.velocity.y * player.speed
 
-    paddle_movement_limit(&e.position.y, &e.size.y, f32(game_state.height))
+    paddle_movement_limit(&player.position.y, &player.size.y, f32(game_state.height))
 }
 
 update_game :: proc(entity: []Entity, game_state: Game_State) {
     for e in Entity_Type {
         switch e {
-        case .Player : update_player(e, entity, game_state)
-        case .Cpu    : update_cpu(e, entity, game_state)
-        case .Ball   : update_ball(e, entity, game_state)
+        case .Player : update_player(entity, game_state)
+        case .Cpu    : update_cpu(entity, game_state)
+        case .Ball   : update_ball(entity, game_state)
         }
     }
 }
 
-update_cpu :: proc(id: Entity_Type, entity: []Entity, game_state: Game_State) {
-    ball_id : Entity_Type = .Ball
- 
-    e := &entity[id]
-    b := &entity[ball_id]
+update_cpu :: proc(entity: []Entity, game_state: Game_State) {
+    ball, cpu : ^Entity
+    for e in Entity_Type {
+        #partial switch e {
+        case .Cpu    : cpu    = &entity[e]
+        case .Ball   : ball   = &entity[e]
+        }
+    }
 
-    e.position.y = math.lerp(e.position.y - e.size.y / 2, b.position.y, f32(0.8))
-    paddle_movement_limit(&e.position.y, &e.size.y, f32(game_state.height))
+    cpu.position.y = math.lerp(cpu.position.y - cpu.size.y / 2, ball.position.y, f32(0.8))
+    paddle_movement_limit(&cpu.position.y, &cpu.size.y, f32(game_state.height))
 }
 
 paddle_movement_limit :: proc(pos_y, height: ^f32, screen_height: f32) {
@@ -176,9 +181,17 @@ paddle_movement_limit :: proc(pos_y, height: ^f32, screen_height: f32) {
     }
 }
 
-update_ball :: proc(ball: ^Entity, player, cpu: Entity, game_state: Game_State) {
+update_ball :: proc(entity: []Entity, game_state: Game_State) {
             // BUG: when ball collide with wall the time between frames to low so it will collide back again.
             // so it wiil jitter.
+            ball, player, cpu : ^Entity
+            for e in Entity_Type {
+                switch e {
+                case .Player : player = &entity[e]
+                case .Cpu    : cpu    = &entity[e]
+                case .Ball   : ball   = &entity[e]
+                }
+            }
            
             // wall collision check
             if ball.position.y <= ball.radius || ball.position.y >= f32(game_state.height) - ball.radius {
