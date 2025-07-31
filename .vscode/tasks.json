@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "windows":
+            {
+                "command": "make_exe.bat debug"
+            },
+            "linux":
+            {
+                "command": "./make_exe.sh debug",
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
