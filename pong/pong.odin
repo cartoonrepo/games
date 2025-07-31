@@ -116,12 +116,12 @@ init_ball :: proc(id: Entity_Type, e: ^Entity, g: Game_State) {
     e.max_speed  = BALL_MAX_SPEED
 }
 
-init_entities :: proc(entity: []Entity, game_state: Game_State) {
-    for e in Entity_Type {
-        switch e {
-        case .Player: init_paddle(e, &entity[e], game_state)
-        case .Cpu   : init_paddle(e, &entity[e], game_state)
-        case .Ball  : init_ball  (e, &entity[e], game_state)
+init_entities :: proc(e: []Entity, game_state: Game_State) {
+    for id in Entity_Type {
+        switch id {
+        case .Player: init_paddle(id, &e[id], game_state)
+        case .Cpu   : init_paddle(id, &e[id], game_state)
+        case .Ball  : init_ball  (id, &e[id], game_state)
         }
     }
 }
@@ -133,9 +133,9 @@ get_ball_position :: proc(game_state: Game_State) -> rl.Vector2 {
         return rl.Vector2 { x, y },
 }
 
-update_player :: proc(entity: []Entity, game_state: Game_State) {
+update_player :: proc(e: []Entity, game_state: Game_State) {
     id: Entity_Type = .Player
-    player := &entity[id]
+    player := &e[id]
 
     if rl.IsKeyDown(.W) || rl.IsKeyDown(.UP) {
         player.velocity.y = -1
@@ -150,22 +150,22 @@ update_player :: proc(entity: []Entity, game_state: Game_State) {
     paddle_movement_limit(&player.position.y, &player.size.y, f32(game_state.height))
 }
 
-update_game :: proc(entity: []Entity, game_state: Game_State) {
-    for e in Entity_Type {
-        switch e {
-        case .Player : update_player(entity, game_state)
-        case .Cpu    : update_cpu(entity, game_state)
-        case .Ball   : update_ball(entity, game_state)
+update_game :: proc(e: []Entity, game_state: Game_State) {
+    for id in Entity_Type {
+        switch id {
+        case .Player : update_player(e, game_state)
+        case .Cpu    : update_cpu(e, game_state)
+        case .Ball   : update_ball(e, game_state)
         }
     }
 }
 
-update_cpu :: proc(entity: []Entity, game_state: Game_State) {
+update_cpu :: proc(e: []Entity, game_state: Game_State) {
     ball, cpu : ^Entity
-    for e in Entity_Type {
-        #partial switch e {
-        case .Cpu    : cpu    = &entity[e]
-        case .Ball   : ball   = &entity[e]
+    for id in Entity_Type {
+        #partial switch id {
+        case .Cpu    : cpu    = &e[id]
+        case .Ball   : ball   = &e[id]
         }
     }
 
@@ -182,32 +182,33 @@ paddle_movement_limit :: proc(pos_y, height: ^f32, screen_height: f32) {
 }
 
 update_ball :: proc(entity: []Entity, game_state: Game_State) {
-            // BUG: when ball collide with wall the time between frames to low so it will collide back again.
-            // so it wiil jitter.
-            ball, player, cpu : ^Entity
-            for e in Entity_Type {
-                switch e {
-                case .Player : player = &entity[e]
-                case .Cpu    : cpu    = &entity[e]
-                case .Ball   : ball   = &entity[e]
-                }
+        // BUG: ball stick
+        ball, player, cpu : ^Entity
+        for e in Entity_Type {
+            switch e {
+            case .Player : player = &entity[e]
+            case .Cpu    : cpu    = &entity[e]
+            case .Ball   : ball   = &entity[e]
             }
+        }
            
-            // wall collision check
-            if ball.position.y <= ball.radius || ball.position.y >= f32(game_state.height) - ball.radius {
-                ball.velocity.y *= -1
-            }
+        // wall collision check
+        if ball.position.y <= ball.radius || ball.position.y >= f32(game_state.height) - ball.radius {
+            ball.velocity.y *= -1
+        }
 
-            // TODO: update score, check win conditon. 
-            if ball.position.x <= ball.radius || ball.position.x >= f32(game_state.width) - ball.radius {
-                ball_reset(ball, game_state)
-            }
+        // TODO: update score, check win conditon. 
+        if ball.position.x <= ball.radius || ball.position.x >= f32(game_state.width) - ball.radius {
+            ball_reset(ball, game_state)
+        }
 
-            if rl.CheckCollisionCircleRec(ball.position, ball.radius, {player.position.x, player.position.y, player.size.x, player.size.y}) {
-                ball.velocity *= { -1, player.velocity.y }
-            } else if rl.CheckCollisionCircleRec(ball.position, ball.radius, {cpu.position.x, cpu.position.y, cpu.size.x, cpu.size.y}) {
-                ball.velocity *= { -1, player.velocity.y }
-            }
+        if rl.CheckCollisionCircleRec(ball.position, ball.radius, { player.position.x, player.position.y, player.size.x, player.size.y }) {
+            ball.velocity.x *= -1
+            ball.velocity.y  = player.velocity.y
+        } else if rl.CheckCollisionCircleRec(ball.position, ball.radius, { cpu.position.x, cpu.position.y, cpu.size.x, cpu.size.y }) {
+            ball.velocity.x *= -1
+            ball.velocity.y  = cpu.velocity.y
+        }
         // update ball
         ball.position += ball.velocity * ball.speed
 }
