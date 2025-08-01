@@ -17,7 +17,7 @@ BALL_MAX_SPEED :: 20
 PADDLE_GAP       :: 40
 PADDLE_WIDTH     :: 20
 PADDLE_HEIGHT    :: 120
-PADDLE_SPEED     :: 12
+PADDLE_SPEED     :: 10
 PADDLE_MAX_SPEED :: 20
 
 Game_State :: struct {
@@ -43,7 +43,7 @@ Entity :: struct {
     radius    : f32,        // ball
     speed     : f32,
     max_speed : f32,
-    b         : bool
+    score     : i32,
 }
 
 
@@ -77,6 +77,12 @@ main :: proc() {
             case .Ball   : rl.DrawCircleV(e.position,    e.radius, e.color)
             }
         }
+
+        // middle line
+        rl.DrawRectangle(game_state.width / 2, 0, 1, game_state.height, rl.SKYBLUE)
+        w := game_state.width / 4
+        rl.DrawText(rl.TextFormat("%v", entities[0].score), w,                    50, 80, rl.SKYBLUE)
+        rl.DrawText(rl.TextFormat("%v", entities[1].score), game_state.width - w, 50, 80, rl.SKYBLUE)
     }
 }
 
@@ -150,16 +156,6 @@ update_player :: proc(e: []Entity, game_state: Game_State) {
     paddle_movement_limit(&player.position.y, &player.size.y, f32(game_state.height))
 }
 
-update_game :: proc(e: []Entity, game_state: Game_State) {
-    for id in Entity_Type {
-        switch id {
-        case .Player : update_player(e, game_state)
-        case .Cpu    : update_cpu(e, game_state)
-        case .Ball   : update_ball(e, game_state)
-        }
-    }
-}
-
 update_cpu :: proc(e: []Entity, game_state: Game_State) {
     ball, cpu : ^Entity
     for id in Entity_Type {
@@ -169,7 +165,9 @@ update_cpu :: proc(e: []Entity, game_state: Game_State) {
         }
     }
 
-    cpu.position.y = math.lerp(cpu.position.y - cpu.size.y / 2, ball.position.y, f32(0.8))
+    // BUG: snaps to ball position when ball resets
+    cpu.position.y = math.lerp(cpu.position.y, ball.position.y, f32(.8))
+
     paddle_movement_limit(&cpu.position.y, &cpu.size.y, f32(game_state.height))
 }
 
@@ -181,34 +179,50 @@ paddle_movement_limit :: proc(pos_y, height: ^f32, screen_height: f32) {
     }
 }
 
-update_ball :: proc(entity: []Entity, game_state: Game_State) {
-        // BUG: ball stick
+update_ball :: proc(e: []Entity, game_state: Game_State) {
         ball, player, cpu : ^Entity
-        for e in Entity_Type {
-            switch e {
-            case .Player : player = &entity[e]
-            case .Cpu    : cpu    = &entity[e]
-            case .Ball   : ball   = &entity[e]
+        for id in Entity_Type {
+            switch id {
+            case .Player : player = &e[id]
+            case .Cpu    : cpu    = &e[id]
+            case .Ball   : ball   = &e[id]
             }
         }
            
         // wall collision check
-        if ball.position.y <= ball.radius || ball.position.y >= f32(game_state.height) - ball.radius {
+        if ball.position.y <= ball.radius {
             ball.velocity.y *= -1
+            ball.position.y  = ball.radius
+        } else if ball.position.y >= f32(game_state.height) - ball.radius {
+            ball.velocity.y *= -1
+            ball.position.y  = f32(game_state.height) - ball.radius
         }
 
         // TODO: update score, check win conditon. 
-        if ball.position.x <= ball.radius || ball.position.x >= f32(game_state.width) - ball.radius {
+        if ball.position.x <= ball.radius {
+            cpu.score += 1
+            ball_reset(ball, game_state)
+        } else if ball.position.x >= f32(game_state.width) - ball.radius {
+            player.score += 1
             ball_reset(ball, game_state)
         }
 
         if rl.CheckCollisionCircleRec(ball.position, ball.radius, { player.position.x, player.position.y, player.size.x, player.size.y }) {
-            ball.velocity.x *= -1
-            ball.velocity.y  = player.velocity.y
+            offset := player.position.x + player.size.x
+            if ball.position.x > offset - ball.radius / 2 {
+                ball.velocity.x *= -1
+                ball.velocity.y  = player.velocity.y
+                ball.position.x  = offset + ball.radius
+            }
+                
         } else if rl.CheckCollisionCircleRec(ball.position, ball.radius, { cpu.position.x, cpu.position.y, cpu.size.x, cpu.size.y }) {
-            ball.velocity.x *= -1
-            ball.velocity.y  = cpu.velocity.y
+            if ball.position.x < cpu.position.x + ball.radius / 2 {
+                ball.velocity.x *= -1
+                ball.velocity.y *= cpu.velocity.y
+                ball.position.x  = cpu.position.x - ball.radius
+            }
         }
+
         // update ball
         ball.position += ball.velocity * ball.speed
 }
@@ -216,4 +230,14 @@ update_ball :: proc(entity: []Entity, game_state: Game_State) {
 ball_reset :: proc(ball: ^Entity, game_state: Game_State) {
         ball.position   = get_ball_position(game_state)
         ball.velocity   = { -1, rand.float32_range(-1, 1) }
+}
+
+update_game :: proc(e: []Entity, game_state: Game_State) {
+    for id in Entity_Type {
+        switch id {
+        case .Player : update_player(e, game_state)
+        case .Cpu    : update_cpu(e, game_state)
+        case .Ball   : update_ball(e, game_state)
+        }
+    }
 }
