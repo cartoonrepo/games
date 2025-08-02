@@ -55,6 +55,8 @@ main :: proc() {
    
     rl.InitWindow(game_state.width, game_state.height, game_state.title); defer rl.CloseWindow()
 
+    rl.SetTargetFPS(60)
+
     entities : [len(Entity_Type)]Entity
 
     init_entities(entities[:], game_state)
@@ -153,7 +155,7 @@ update_player :: proc(e: []Entity, game_state: Game_State) {
 
     player.position.y += player.velocity.y * player.speed
 
-    paddle_movement_limit(&player.position.y, &player.size.y, f32(game_state.height))
+    paddle_movement_limit(player, f32(game_state.height))
 }
 
 update_cpu :: proc(e: []Entity, game_state: Game_State) {
@@ -168,14 +170,14 @@ update_cpu :: proc(e: []Entity, game_state: Game_State) {
     // BUG: snaps to ball position when ball resets
     cpu.position.y = math.lerp(cpu.position.y, ball.position.y, f32(.8))
 
-    paddle_movement_limit(&cpu.position.y, &cpu.size.y, f32(game_state.height))
+    paddle_movement_limit(cpu, f32(game_state.height))
 }
 
-paddle_movement_limit :: proc(pos_y, height: ^f32, screen_height: f32) {
-    if pos_y^ <= 0 {
-        pos_y^ = 0
-    } else if pos_y^ >= screen_height - height^ {
-        pos_y^ = screen_height - height^
+paddle_movement_limit :: proc(e: ^Entity, screen_height: f32) {
+    if e.position.y <= 0 {
+        e.position.y = 0
+    } else if e.position.y >= screen_height - e.size.y {
+        e.position.y = screen_height - e.size.y
     }
 }
 
@@ -198,7 +200,6 @@ update_ball :: proc(e: []Entity, game_state: Game_State) {
             ball.position.y  = f32(game_state.height) - ball.radius
         }
 
-        // TODO: update score, check win conditon. 
         if ball.position.x <= ball.radius {
             cpu.score += 1
             ball_reset(ball, game_state)
