@@ -1,7 +1,7 @@
 package main
 
 import    "core:math/rand"
-import    "core:fmt"
+// import    "core:fmt"
 import    "core:math"
 import rl "vendor:raylib"
 
@@ -168,7 +168,7 @@ update_cpu :: proc(e: []Entity, game_state: Game_State) {
     }
 
     // BUG: snaps to ball position when ball resets
-    cpu.position.y = math.lerp(cpu.position.y, ball.position.y, f32(.8))
+    cpu.position.y = math.lerp(cpu.position.y, ball.position.y, f32(0.8))
 
     paddle_movement_limit(cpu, f32(game_state.height))
 }
