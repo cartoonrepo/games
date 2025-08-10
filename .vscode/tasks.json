@@ -4,14 +4,7 @@
         {
             "label": "Build",
             "type": "shell",
-            "windows":
-            {
-                "command": "make_exe.bat debug"
-            },
-            "linux":
-            {
-                "command": "./make_exe.sh debug",
-            },
+            "command": "python make_exe.py -debug",
             "group": {
                 "kind": "build",
                 "isDefault": true

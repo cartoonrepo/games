@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import platform
 import subprocess
@@ -5,35 +7,35 @@ import shutil
 
 from pathlib import Path
 
-program_name  = "cartooon"
-source        = "pong"
+# ----------------------------------------------------------------
+program_name  = "floppy"
 
 collections   = []
-extra_flags   = ["-strict-style", "-vet", "-disallow-do"]
+extra_flags   = ["-strict-style", "-disallow-do"]
 debug_flags   = ["-debug"]
-release_flags = ["-o:speed", "-no-bounds-check"]
+release_flags = ["-o:speed", "-vet", "-no-bounds-check"]
+
+IS_WINDOWS = platform.system() == "Windows"
+# if IS_WINDOWS:
+#     extra_flags.append("-subsystem:windows")
+
+# ----------------------------------------------------------------
 
 debug_flags   = debug_flags   + collections + extra_flags
 release_flags = release_flags + collections + extra_flags
 
-IS_WINDOWS = platform.system() == "Windows"
-# if IS_WINDOWS:
-    # flags.append("-subsystem:windows")
-
-# ---------------------------------------------------------------------------------------------------
 parser = argparse.ArgumentParser(
                     prog='make_exe',
                     description='Build script for odin projects',
                     epilog='')
 
-parser.add_argument("-release",    action="store_true", help="Release build")
-parser.add_argument("-debug",      action="store_true", help="Debug build")
-parser.add_argument("-run",        action="store_true", help="Run the executable after compiling it")
-parser.add_argument("-clean",      action="store_true", help="Clean build folder")
-parser.add_argument("-hold",       action="store_true", help="Hold terminal until Enter pressed")
+parser.add_argument("-release", action="store_true", help="release build")
+parser.add_argument("-debug",   action="store_true", help="debug build")
+parser.add_argument("-clean",   action="store_true", help="clean build folder")
+parser.add_argument("-run",     action="store_true", help="run the executable after compiling it,  require `-debug | -release` flags")
+parser.add_argument("-hold",    action="store_true", help="if error hold terminal until Enter pressed, require `-run` flag")
 
 args = parser.parse_args()
-
 
 def main():
     root_build_dir = Path("build")
@@ -44,34 +46,35 @@ def main():
 
         build_dir.mkdir(parents=True, exist_ok=True)
 
-        binary_path = build_dir/program_name
-        build(binary_path, release_flags)
+        build(build_dir, release_flags)
 
     elif args.debug:
         build_dir = root_build_dir / "debug"
         build_dir.mkdir(parents=True, exist_ok=True)
 
-        binary_path = build_dir/program_name
-
-        build(binary_path, debug_flags)
+        build(build_dir, debug_flags)
 
     elif args.clean:
         clean(root_build_dir)
 
+    else:
+        print("pass either of these flags: -release | -debug | -clean | --help")
 
-def build(binary: Path, flags):
+
+def build(binary_path: Path, flags):
+    binary = binary_path/program_name
     if IS_WINDOWS:
         if not binary.suffix:
             binary = binary.with_suffix(".exe")
 
-    cmd = ["odin", "build", source, f"-out:{str(binary)}"] + collections + flags
+    cmd = ["odin", "build", program_name, f"-out:{str(binary)}"] + flags
 
     try:
-        subprocess.run(cmd, check=True)
         print(" ".join(cmd))
+        subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError:
         if args.hold:
-            input("Press Enter to exit.")
+            input("\nPress 'Enter' to exit...")
         exit(1)
     run(binary)
 

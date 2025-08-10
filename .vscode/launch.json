@@ -6,7 +6,7 @@
         "type": "cppdbg",
         "request": "launch",
         "preLaunchTask": "Build",
-        "program": "${workspaceFolder}/build/game_debug",
+        "program": "${workspaceFolder}/build/debug/floppy",
         "args": [],
         "cwd": "${workspaceFolder}",
       },
@@ -15,7 +15,7 @@
         "type": "cppvsdbg",
         "request": "launch",
         "preLaunchTask": "Build",
-        "program": "${workspaceFolder}/game_debug.exe",
+        "program": "${workspaceFolder}/build/debug/floppy.exe",
         "args": [],
         "cwd": "${workspaceFolder}",
         "console": "integratedTerminal"
