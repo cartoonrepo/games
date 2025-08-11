@@ -1,6 +1,5 @@
 package main
 
-import    "core:fmt"
 import    "core:math/rand"
 import rl "vendor:raylib"
 
@@ -69,7 +68,6 @@ main :: proc() {
             break main_loop
         }
 
-
         if !game_state.game_over {
             update_game(floppy, pipes[:])
         } else {
@@ -113,6 +111,7 @@ create_pipe :: proc(x, y: f32) -> Entity {
         active = true,
     }
 }
+
 reset_floppy :: proc(id: Entity_Id) {
     e := get_entity(id)
     e^ = create_floppy()
