@@ -11,9 +11,15 @@ SCREEN_HEIGHT :: 768
 GRAVITY :: 30
 JUMP    :: 500
 
+FLOPPY_RADIUS :: 26 
+FLOPPY_X_POS  :: 100 
+
+PIPE_WIDTH      :: 120
+PIPE_HEIGHT     :: SCREEN_HEIGHT
 PIPE_MOVE_SPEED :: 5
-PIPE_HOR_GAP    :: 400
-PIPE_VER_GAP    :: 120
+PIPE_HOR_GAP    :: 200
+PIPE_VER_GAP    :: 100
+PIPE_RAND_Y_POS :: 160
 
 Game_State :: struct {
     height   : i32,
@@ -37,15 +43,10 @@ Entity :: struct {
 
     // floppy (player)
     radius : f32,
-    flags  : bit_set[Entity_Flags],
 
     // pipe
     size   : rl.Vector2,
     active : bool,
-}
-
-Entity_Flags :: enum {
-    Is_Dead,
 }
 
 game_state: Game_State
@@ -68,8 +69,15 @@ main :: proc() {
             break main_loop
         }
 
+
         if !game_state.game_over {
             update_game(floppy, pipes[:])
+        } else {
+            reset_game(floppy, pipes[:])
+            if rl.IsKeyPressed(.ENTER) {
+                game_state.game_over = false
+                game_state.score = 0
+            }
         }
 
         rl.BeginDrawing(); defer rl.EndDrawing()
@@ -82,54 +90,75 @@ main :: proc() {
         } else {
             game_over_screen()
         }
-
     }
 
     delete(entities)
+    delete(pipes)
 }
 
 create_floppy :: proc() -> Entity {
-    r : f32 = 26
     return Entity {
-        pos    = { 100, (f32(rl.GetScreenHeight()) + r) / 2 },
-        radius = r,
+        pos    = { FLOPPY_X_POS, (f32(rl.GetScreenHeight()) + FLOPPY_RADIUS) / 3 },
+        radius = FLOPPY_RADIUS,
         kind   = .Player,
     }
 }
 
-create_pipe :: proc(x, y, w, h: f32) -> Entity {
+create_pipe :: proc(x, y: f32) -> Entity {
     return Entity {
         pos    = { x, y },
-        size   = { w, h },
+        size   = { PIPE_WIDTH, PIPE_HEIGHT },
         vel    = { PIPE_MOVE_SPEED, 0 },
         kind   = .Pipe,
         active = true,
+    }
+}
+reset_floppy :: proc(id: Entity_Id) {
+    e := get_entity(id)
+    e^ = create_floppy()
+}
+
+set_pipes_position :: proc(index: int, x: ^f32) -> (y0, y1: f32) {
+    c := f32(rl.GetScreenHeight()) / 2
+
+    rand_num := rand.float32_range(c - PIPE_RAND_Y_POS, c + PIPE_RAND_Y_POS)
+
+    x^ = x^ + PIPE_WIDTH + PIPE_HOR_GAP
+
+    y0 = rand_num - PIPE_HEIGHT - PIPE_VER_GAP  
+    y1 = rand_num + PIPE_VER_GAP
+
+    return
+}
+
+reset_pipes :: proc(ids: []Entity_Id) {
+    x : f32 = f32(SCREEN_WIDTH) / 2 - PIPE_WIDTH - PIPE_HOR_GAP
+
+    for i := 0; i < len(ids); i += 2 {
+        p0 := get_entity(ids[i])
+        p1 := get_entity(ids[i + 1])
+
+         y0, y1 := set_pipes_position(i, &x)
+
+        p0^ = create_pipe(x, y0)
+        p1^ = create_pipe(x, y1)
     }
 }
 
 setup_pipes :: proc() -> []Entity_Id {
     pipes: [dynamic]Entity_Id
 
-    x:  f32 = f32(SCREEN_WIDTH) / 2
-    y:  f32 = 0
-    w:  f32 = 120
-    h:  f32 = f32(rl.GetScreenHeight())
+    number_of_pipes := 2 * (int((SCREEN_WIDTH) / (PIPE_WIDTH + PIPE_HOR_GAP)) + 1)
 
-    number_of_pipes := int((SCREEN_WIDTH) / PIPE_HOR_GAP) + 1  // add extra one pipe so it won't feel like poping pipe at the end.
+    x : f32 = f32(SCREEN_WIDTH) / 2 - PIPE_WIDTH - PIPE_HOR_GAP
+    for i := 0; i < number_of_pipes; i += 2 {
+        y0, y1 := set_pipes_position(i, &x)
+    
+        h_id := create_entity(create_pipe(x, y0))
+        v_id := create_entity(create_pipe(x, y1))
 
-    c := f32(rl.GetScreenHeight()) / 2
-    for i in 0..= number_of_pipes {
-        x = f32(SCREEN_WIDTH) / 2 + f32(i) * PIPE_HOR_GAP
-
-        r := rand.float32_range(c - 200, c + 200)
-
-        y = r - h - PIPE_VER_GAP  
-        id := create_entity(create_pipe(x, y, w, h))
-        append(&pipes, id)
-
-        y = r + PIPE_VER_GAP
-        id = create_entity(create_pipe(x, y, w, h))
-        append(&pipes, id)
+        append(&pipes, h_id)
+        append(&pipes, v_id)
     }
 
     return pipes[:]
@@ -139,26 +168,30 @@ update_floppy :: proc(id: Entity_Id) {
     dt := rl.GetFrameTime()
     e := get_entity(id)
 
-    if rl.IsKeyPressed(.SPACE) {
+    if rl.IsKeyPressed(.SPACE) || rl.IsMouseButtonPressed(.LEFT) {
         e.vel.y = -JUMP
     }
 
     e.vel.y += GRAVITY
-
     e.pos += e.vel * dt
 }
 
 update_game :: proc(floppy: Entity_Id, pipes: []Entity_Id) {
     update_floppy(floppy)
 
-    for i := 1; i <= len(pipes); i += 2 {
+    for i := 0; i < len(pipes); i += 2 {
         update_pipes(i, pipes[:])
 
-        check_collision(floppy, Entity_Id(i))
-        check_collision(floppy, Entity_Id(i + 1))
+        check_collision(floppy, pipes[i])
+        check_collision(floppy, pipes[i + 1])
 
-        update_score(get_entity(floppy), get_entity(Entity_Id(i)), i)
+        update_score(get_entity(floppy), get_entity(pipes[i]), i)
     }
+}
+
+reset_game :: proc(floppy: Entity_Id, pipes: []Entity_Id) {
+    reset_floppy(floppy)
+    reset_pipes(pipes[:])
 }
 
 check_collision :: proc(floppy, pipe: Entity_Id) {
@@ -166,7 +199,6 @@ check_collision :: proc(floppy, pipe: Entity_Id) {
     p := get_entity(pipe)
 
     if rl.CheckCollisionCircleRec(f.pos, f.radius, { p.pos.x, p.pos.y, p.size.x, p.size.y }) {
-        f.flags = { .Is_Dead }
         game_state.game_over = true
     }
 
@@ -183,32 +215,32 @@ update_score :: proc(e, p: ^Entity, i: int) {
 }
 
 update_pipes :: proc(i: int, pipes: []Entity_Id) {
-    e1 := get_entity(Entity_Id(i))
-    e2 := get_entity(Entity_Id(i + 1))
+    p1 := get_entity(pipes[i])
+    p2 := get_entity(pipes[i + 1])
 
-    e1.pos.x -= e1.vel.x
-    e2.pos.x -= e2.vel.x
+    p1.pos.x -= p1.vel.x
+    p2.pos.x -= p2.vel.x
 
     w := f32(rl.GetScreenHeight()) / 2
-    y : f32 = rand.float32_range(w - 200, w + 200)
+    y : f32 = rand.float32_range(w - PIPE_RAND_Y_POS, w + PIPE_RAND_Y_POS)
 
-    if e1.pos.x + e1.size.x < 0 {
-        if i <= 2 { // offset 2 becasue 2 vertical pipes.
-            x := get_entity(Entity_Id(len(pipes))).pos.x
-            e1.pos.x = x + PIPE_HOR_GAP
-            e2.pos.x = x + PIPE_HOR_GAP
+    if p1.pos.x + p1.size.x < 0 {
+        if i < 2 { // offset 2 becasue 2 vertical pipes.
+            x := get_entity(pipes[len(pipes) - 1]).pos.x
+            p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
+            p2.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
 
         } else {
-            x := get_entity(Entity_Id(i - 2)).pos.x
-            e1.pos.x = x + PIPE_HOR_GAP
-            e2.pos.x = x + PIPE_HOR_GAP
+            x := get_entity(pipes[i - 2]).pos.x
+            p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
+            p2.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
         }
 
-        e1.pos.y =  y - e1.size.y - 100
-        e2.pos.y =  y + 100 
+        p1.pos.y =  y - p1.size.y - 100
+        p2.pos.y =  y + 100 
         
-        e1.active = true
-        e2.active = true
+        p1.active = true
+        p2.active = true
     }
 }
 
@@ -216,18 +248,10 @@ get_entity :: proc(id: Entity_Id) -> ^Entity {
     if int(id) < len(entities) {
         return &entities[int(id)]
     }
-
     return nil
 }
 
 create_entity :: proc(entity: Entity) -> (id: Entity_Id) {
-    for &e, index in entities {
-        if .Is_Dead in e.flags {
-            e = entity
-            e.flags -= { .Is_Dead }
-            return Entity_Id(index)
-        }
-    }
     id = Entity_Id(len(entities))
     append(&entities, entity)
     return
