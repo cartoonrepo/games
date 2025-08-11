@@ -21,10 +21,11 @@ PIPE_VER_GAP    :: 100
 PIPE_RAND_Y_POS :: 160
 
 Game_State :: struct {
-    height   : i32,
-    width    : i32,
-    game_over: bool,
-    score    : int,
+    height    : i32,
+    width     : i32,
+    game_over : bool,
+    score     : int,
+    hi_score  : int,
 }
 
 Entity_Id :: distinct int
@@ -74,7 +75,11 @@ main :: proc() {
             reset_game(floppy, pipes[:])
             if rl.IsKeyPressed(.ENTER) {
                 game_state.game_over = false
-                game_state.score = 0
+
+                if game_state.score > game_state.hi_score {
+                    game_state.hi_score = game_state.score
+                }
+                game_state.score    = 0
             }
         }
 
@@ -84,7 +89,8 @@ main :: proc() {
         if !game_state.game_over {
             draw_pipes(pipes[:])
             draw_floppy(floppy)
-            draw_score(game_state.width - 120, 10, 40, rl.RED)
+            text := rl.TextFormat("SCORE: %v", game_state.score)
+            draw_text_center(text, game_state.width - 120, 10, 40, rl.RED)
         } else {
             game_over_screen()
         }
@@ -281,17 +287,29 @@ draw_score :: proc(x, y, font_size: i32, color: rl.Color) {
 }
 
 game_over_screen :: proc() {
+    // game_over
     text : cstring = "GAMOVER"
     font_size : i32 = 100
 
     x := game_state.width / 2
     y := ((game_state.height) - font_size) / 3
-
     draw_text_center(text, x, y, font_size, rl.RED)
-    y -= 100
-    draw_score(x, y, 60, rl.BLUE)
 
-    y += 250
+    // score
+    y -= 100
+    // draw_score(x, y, 60, rl.BLUE)
+    text = rl.TextFormat("SCORE: %v", game_state.score)
+    font_size = 60
+    draw_text_center(text, x, y, font_size, rl.SKYBLUE)
+
+    // hi-score
+    y -= 60
+    // draw_score(x, y, 60, rl.BLUE)
+    text = rl.TextFormat("HI-SCORE: %v", game_state.hi_score)
     font_size = 40
-    draw_text_center("Press ENTER to restart", x, y, font_size, rl.SKYBLUE)
+    draw_text_center(text, x, y, font_size, rl.BLUE)
+
+    y += 350
+    font_size = 40
+    draw_text_center("Press ENTER to restart", x, y, font_size, rl.VIOLET)
 }
