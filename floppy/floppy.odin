@@ -297,14 +297,12 @@ game_over_screen :: proc() {
 
     // score
     y -= 100
-    // draw_score(x, y, 60, rl.BLUE)
     text = rl.TextFormat("SCORE: %v", game_state.score)
     font_size = 60
     draw_text_center(text, x, y, font_size, rl.SKYBLUE)
 
     // hi-score
     y -= 60
-    // draw_score(x, y, 60, rl.BLUE)
     text = rl.TextFormat("HI-SCORE: %v", game_state.hi_score)
     font_size = 40
     draw_text_center(text, x, y, font_size, rl.BLUE)
