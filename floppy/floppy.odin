@@ -122,7 +122,7 @@ set_pipes_position :: proc(index: int, x: ^f32) -> (y0, y1: f32) {
 
     rand_num := rand.float32_range(c - PIPE_RAND_Y_POS, c + PIPE_RAND_Y_POS)
 
-    x^ = x^ + PIPE_WIDTH + PIPE_HOR_GAP
+    x^ += PIPE_WIDTH + PIPE_HOR_GAP
 
     y0 = rand_num - PIPE_HEIGHT - PIPE_VER_GAP  
     y1 = rand_num + PIPE_VER_GAP
