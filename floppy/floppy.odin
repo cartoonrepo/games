@@ -135,7 +135,7 @@ reset_pipes :: proc(ids: []Entity_Id) {
         p0 := get_entity(ids[i])
         p1 := get_entity(ids[i + 1])
 
-         y0, y1 := set_pipes_position(i, &x)
+        y0, y1 := set_pipes_position(i, &x)
 
         p0^ = create_pipe(x, y0)
         p1^ = create_pipe(x, y1)
