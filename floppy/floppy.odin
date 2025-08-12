@@ -73,13 +73,6 @@ main :: proc() {
             update_game(floppy, pipes[:])
         } else {
             reset_game(floppy, pipes[:])
-            if rl.IsKeyPressed(.ENTER) {
-                game_state.game_over = false
-                if game_state.score > game_state.hi_score {
-                    game_state.hi_score = game_state.score
-                }
-                game_state.score = 0
-            }
         }
 
         rl.BeginDrawing(); defer rl.EndDrawing()
@@ -89,9 +82,7 @@ main :: proc() {
             draw_pipes(pipes[:])
             draw_floppy(floppy)
 
-            // score
-            text := rl.TextFormat("SCORE: %v", game_state.score)
-            draw_text_center(text, game_state.width - 120, 10, 40, rl.RED)
+            draw_score(game_state.width - 120, 10, 40, rl.RED)
         } else {
             game_over_screen()
         }
@@ -198,6 +189,7 @@ update_game :: proc(floppy: Entity_Id, pipes: []Entity_Id) {
 reset_game :: proc(floppy: Entity_Id, pipes: []Entity_Id) {
     reset_floppy(floppy)
     reset_pipes(pipes[:])
+    reset_score()
 }
 
 check_collision :: proc(floppy, pipe: Entity_Id) {
@@ -216,10 +208,21 @@ check_collision :: proc(floppy, pipe: Entity_Id) {
 update_score :: proc(e, p: ^Entity, i: int) {
     if p.pos.x + p.size.x < e.pos.x && p.active && !game_state.game_over {
         game_state.score += 1
-        if game_state.hi_score == 0 {
+        p.active = false
+    }
+}
+
+reset_score :: proc() {
+    if rl.IsKeyPressed(.ENTER) {
+        game_state.game_over = false
+        if game_state.score > game_state.hi_score {
             game_state.hi_score = game_state.score
         }
-        p.active = false
+        game_state.score = 0
+    }
+
+    if game_state.hi_score == 0 {
+        game_state.hi_score = game_state.score
     }
 }
 
@@ -234,7 +237,7 @@ update_pipes :: proc(i: int, pipes: []Entity_Id) {
         w : f32 = f32(rl.GetScreenHeight()) / 2
         y : f32 = rand.float32_range(w - PIPE_RAND_Y_POS, w + PIPE_RAND_Y_POS)
 
-                    // get last pipe position                    get previous pipe position
+                    // get last pipe position                get previous pipe position
         x := (i < 2) ? get_entity(pipes[len(pipes) - 1]).pos.x : get_entity(pipes[i - 2]).pos.x
 
         p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
@@ -296,14 +299,13 @@ game_over_screen :: proc() {
 
     // score
     y -= 100
-    text = rl.TextFormat("SCORE: %v", game_state.score)
     font_size = 60
-    draw_text_center(text, x, y, font_size, rl.SKYBLUE)
+    draw_score(x, y, font_size, rl.SKYBLUE)
 
     // hi-score
     y -= 60
-    text = rl.TextFormat("HI-SCORE: %v", game_state.hi_score)
     font_size = 40
+    text = rl.TextFormat("HI-SCORE: %v", game_state.hi_score)
     draw_text_center(text, x, y, font_size, rl.BLUE)
 
     y += 350
