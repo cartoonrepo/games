@@ -75,20 +75,21 @@ main :: proc() {
             reset_game(floppy, pipes[:])
             if rl.IsKeyPressed(.ENTER) {
                 game_state.game_over = false
-
                 if game_state.score > game_state.hi_score {
                     game_state.hi_score = game_state.score
                 }
-                game_state.score    = 0
+                game_state.score = 0
             }
         }
 
         rl.BeginDrawing(); defer rl.EndDrawing()
-        rl.ClearBackground(rl.BLACK)
+        rl.ClearBackground({ 0, 20, 30, 255 })
 
         if !game_state.game_over {
             draw_pipes(pipes[:])
             draw_floppy(floppy)
+
+            // score
             text := rl.TextFormat("SCORE: %v", game_state.score)
             draw_text_center(text, game_state.width - 120, 10, 40, rl.RED)
         } else {
@@ -215,6 +216,9 @@ check_collision :: proc(floppy, pipe: Entity_Id) {
 update_score :: proc(e, p: ^Entity, i: int) {
     if p.pos.x + p.size.x < e.pos.x && p.active && !game_state.game_over {
         game_state.score += 1
+        if game_state.hi_score == 0 {
+            game_state.hi_score = game_state.score
+        }
         p.active = false
     }
 }
@@ -226,20 +230,15 @@ update_pipes :: proc(i: int, pipes: []Entity_Id) {
     p1.pos.x -= p1.vel.x
     p2.pos.x -= p2.vel.x
 
-    w := f32(rl.GetScreenHeight()) / 2
-    y : f32 = rand.float32_range(w - PIPE_RAND_Y_POS, w + PIPE_RAND_Y_POS)
-
     if p1.pos.x + p1.size.x < 0 {
-        if i < 2 { // offset 2 becasue 2 vertical pipes.
-            x := get_entity(pipes[len(pipes) - 1]).pos.x
-            p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
-            p2.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
+        w : f32 = f32(rl.GetScreenHeight()) / 2
+        y : f32 = rand.float32_range(w - PIPE_RAND_Y_POS, w + PIPE_RAND_Y_POS)
 
-        } else {
-            x := get_entity(pipes[i - 2]).pos.x
-            p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
-            p2.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
-        }
+                    // get last pipe position                    get previous pipe position
+        x := (i < 2) ? get_entity(pipes[len(pipes) - 1]).pos.x : get_entity(pipes[i - 2]).pos.x
+
+        p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
+        p2.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
 
         p1.pos.y =  y - p1.size.y - 100
         p2.pos.y =  y + 100 
@@ -267,8 +266,8 @@ draw_floppy :: proc(id: Entity_Id) {
     rl.DrawCircleV(e.pos, e.radius, rl.MAGENTA)
 }
 
-draw_pipes :: proc(id: []Entity_Id) {
-    for i in id {
+draw_pipes :: proc(ids: []Entity_Id) {
+    for i in ids {
         e := get_entity(i)
         c := rl.LIME
         if i % 2 == 0 { c = rl.BLUE }

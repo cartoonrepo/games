@@ -4,6 +4,7 @@ import argparse
 import platform
 import subprocess
 import shutil
+import sys
 
 from pathlib import Path
 
@@ -67,24 +68,33 @@ def build(binary_path: Path, flags):
         if not binary.suffix:
             binary = binary.with_suffix(".exe")
 
-    cmd = ["odin", "build", program_name, f"-out:{str(binary)}"] + flags
+    build_option = "run" if args.run else "build"
+    command = ["odin", build_option, program_name, f"-out:{str(binary)}"] + flags
 
     try:
-        print(" ".join(cmd))
-        subprocess.run(cmd, check=True)
+        print(" ".join(command))
+        subprocess.run(command, check=True)
     except subprocess.CalledProcessError:
         if args.hold:
             input("\nPress 'Enter' to exit...")
-        exit(1)
-    run(binary)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print(f"\nforce quit: {str(binary)}")
+        sys.exit(0)
 
+    # run(binary)
+
+# WARN: another way to run binary, right now it's not been used.
 def run(binary: Path):
     if binary.exists() and args.run:
-        print(f"running: {str(binary)}")
+        print(f"running: {str(binary)}\n")
         try:
             subprocess.run([str(binary)], check=True)
         except subprocess.CalledProcessError:
-            exit(1)
+            sys.exit(1)
+        except KeyboardInterrupt:
+            print(f"\nforce quit: {str(binary)}")
+            sys.exit(0)
 
 
 def clean(dir: Path):
