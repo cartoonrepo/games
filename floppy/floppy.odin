@@ -82,7 +82,7 @@ main :: proc() {
             draw_pipes(pipes[:])
             draw_floppy(floppy)
 
-            draw_score(game_state.width - 120, 10, 40, rl.RED)
+            draw_score("SCORE: %v", game_state.width - 120, 10, 40, game_state.score, rl.RED)
         } else {
             game_over_screen()
         }
@@ -94,7 +94,7 @@ main :: proc() {
 
 create_floppy :: proc() -> Entity {
     return Entity {
-        pos    = { FLOPPY_X_POS, (f32(rl.GetScreenHeight()) + FLOPPY_RADIUS) / 3 },
+        pos    = {FLOPPY_X_POS, (f32(rl.GetScreenHeight()) + FLOPPY_RADIUS) / 3},
         radius = FLOPPY_RADIUS,
         kind   = .Player,
     }
@@ -102,9 +102,9 @@ create_floppy :: proc() -> Entity {
 
 create_pipe :: proc(x, y: f32) -> Entity {
     return Entity {
-        pos    = { x, y },
-        size   = { PIPE_WIDTH, PIPE_HEIGHT },
-        vel    = { PIPE_MOVE_SPEED, 0 },
+        pos    = {x, y},
+        size   = {PIPE_WIDTH, PIPE_HEIGHT},
+        vel    = {PIPE_MOVE_SPEED, 0},
         kind   = .Pipe,
         active = true,
     }
@@ -283,8 +283,8 @@ draw_text_center :: proc(text: cstring, x, y, font_size: i32, color: rl.Color) {
     rl.DrawText(text, xx, y, font_size, color)
 }
 
-draw_score :: proc(x, y, font_size: i32, color: rl.Color) {
-    text : cstring = rl.TextFormat("SCORE: %v", game_state.score)
+draw_score :: proc(text: cstring, x, y, font_size: i32, score: int,  color: rl.Color) {
+    text : cstring = rl.TextFormat(text, score)
     draw_text_center(text, x, y, font_size, color)
 }
 
@@ -300,13 +300,12 @@ game_over_screen :: proc() {
     // score
     y -= 100
     font_size = 60
-    draw_score(x, y, font_size, rl.SKYBLUE)
+    draw_score("SCORE: %v", x, y, font_size, game_state.score, rl.SKYBLUE)
 
     // hi-score
     y -= 60
     font_size = 40
-    text = rl.TextFormat("HI-SCORE: %v", game_state.hi_score)
-    draw_text_center(text, x, y, font_size, rl.BLUE)
+    draw_score("HI-SCORE: %v", x, y, font_size, game_state.hi_score, rl.BLUE)
 
     y += 350
     font_size = 40

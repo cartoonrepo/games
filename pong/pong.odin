@@ -1,7 +1,6 @@
 package main
 
 import    "core:math/rand"
-// import    "core:fmt"
 import    "core:math"
 import rl "vendor:raylib"
 
@@ -12,7 +11,6 @@ SCREEN_HEIGHT :: 768
 BALL_RADIUS    :: 14
 BALL_SPEED     :: 8
 BALL_MAX_SPEED :: 20
-
 
 PADDLE_GAP       :: 40
 PADDLE_WIDTH     :: 20
@@ -45,7 +43,6 @@ Entity :: struct {
     max_speed : f32,
     score     : i32,
 }
-
 
 main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})

@@ -10,9 +10,10 @@ from pathlib import Path
 
 # ----------------------------------------------------------------
 program_name  = "floppy"
+source        = program_name
 
 collections   = []
-extra_flags   = ["-strict-style", "-disallow-do"]
+extra_flags   = ["-strict-style", "-disallow-do", "-keep-executable"]
 debug_flags   = ["-debug"]
 release_flags = ["-o:speed", "-vet", "-no-bounds-check"]
 
@@ -22,13 +23,10 @@ IS_WINDOWS = platform.system() == "Windows"
 
 # ----------------------------------------------------------------
 
-debug_flags   = debug_flags   + collections + extra_flags
-release_flags = release_flags + collections + extra_flags
-
 parser = argparse.ArgumentParser(
                     prog='make_exe',
                     description='Build script for odin projects',
-                    epilog='')
+                    epilog='made by cartoon')
 
 parser.add_argument("-release", action="store_true", help="release build")
 parser.add_argument("-debug",   action="store_true", help="debug build")
@@ -43,36 +41,39 @@ def main():
 
     if args.release:
         build_dir = root_build_dir / "release"
+        flags     = release_flags + collections + extra_flags
+
         clean(build_dir)
-
-        build_dir.mkdir(parents=True, exist_ok=True)
-
-        build(build_dir, release_flags)
 
     elif args.debug:
         build_dir = root_build_dir / "debug"
-        build_dir.mkdir(parents=True, exist_ok=True)
-
-        build(build_dir, debug_flags)
+        flags     = debug_flags + collections + extra_flags
 
     elif args.clean:
         clean(root_build_dir)
+        sys.exit(0)
 
     else:
         print("pass either of these flags: -release | -debug | -clean | --help")
+        sys.exit(0)
+
+    if not build_dir.exists():
+        build_dir.mkdir(parents=True, exist_ok=True)
+
+    build(build_dir, flags)
 
 
 def build(binary_path: Path, flags):
-    binary = binary_path/program_name
+    binary = binary_path / program_name
     if IS_WINDOWS:
         if not binary.suffix:
             binary = binary.with_suffix(".exe")
 
-    build_option = "run" if args.run else "build"
-    command = ["odin", build_option, program_name, f"-out:{str(binary)}"] + flags
+    option  = "run" if args.run else "build"
+    command = ["odin", option, source, f"-out:{str(binary)}"] + flags
 
     try:
-        print(" ".join(command))
+        print(f"{" ".join(command)}\n")
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError:
         if args.hold:
@@ -84,7 +85,8 @@ def build(binary_path: Path, flags):
 
     # run(binary)
 
-# WARN: another way to run binary, right now it's not been used.
+# WARN: right now it's not been used.
+# we are using odin's `run` insted.
 def run(binary: Path):
     if binary.exists() and args.run:
         print(f"running: {str(binary)}\n")
