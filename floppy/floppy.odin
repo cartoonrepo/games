@@ -237,7 +237,7 @@ update_pipes :: proc(i: int, pipes: []Entity_Id) {
         w : f32 = f32(rl.GetScreenHeight()) / 2
         y : f32 = rand.float32_range(w - PIPE_RAND_Y_POS, w + PIPE_RAND_Y_POS)
 
-                    // get last pipe position                get previous pipe position
+                    // get last pipe position                    get previous pipe position
         x := (i < 2) ? get_entity(pipes[len(pipes) - 1]).pos.x : get_entity(pipes[i - 2]).pos.x
 
         p1.pos.x = x + PIPE_WIDTH + PIPE_HOR_GAP
@@ -284,8 +284,7 @@ draw_text_center :: proc(text: cstring, x, y, font_size: i32, color: rl.Color) {
 }
 
 draw_score :: proc(text: cstring, x, y, font_size: i32, score: int,  color: rl.Color) {
-    text : cstring = rl.TextFormat(text, score)
-    draw_text_center(text, x, y, font_size, color)
+    draw_text_center(rl.TextFormat(text, score), x, y, font_size, color)
 }
 
 game_over_screen :: proc() {

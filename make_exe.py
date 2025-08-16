@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # ----------------------------------------------------------------
-program_name  = "floppy"
+program_name  = "breakout"
 source        = program_name
 
 collections   = []
