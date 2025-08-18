@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 
 # ----------------------------------------------------------------
-program_name  = "breakout"
+program_name  = "floppy"
 source        = program_name
 
 collections   = []
-extra_flags   = ["-strict-style", "-disallow-do", "-keep-executable"]
+extra_flags   = ["-strict-style", "-disallow-do"]
 debug_flags   = ["-debug"]
 release_flags = ["-o:speed", "-vet", "-no-bounds-check"]
 
